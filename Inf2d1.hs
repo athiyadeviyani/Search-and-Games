@@ -97,10 +97,14 @@ checkArrival destination curNode
 breadthFirstSearch::Node->(Branch -> [Branch])->[Branch]->[Node]->Maybe Branch
 breadthFirstSearch destination next [] exploredList = Nothing -- if branch is empty then there is no solution
 breadthFirstSearch destination next branches exploredList
-  | checkArrival destination (head (head branches)) = Just (head branches)
-  | notElem (head (head branches)) exploredList = breadthFirstSearch destination next (tail branches ++ next (head branches)) (head (head branches) : exploredList)
+  | checkArrival destination currentNode = Just currentBranch -- if solution is found, return Just Branch
+    -- check if the current node of the search branch has been explored or not
+    -- explore the other branches
+    -- and add the current node to the list of explored nodes
+  | notElem currentNode exploredList = breadthFirstSearch destination next (tail branches ++ next currentBranch) (currentNode : exploredList)
   | otherwise = breadthFirstSearch destination next (tail branches) exploredList
-
+      where currentNode = head (head branches)
+            currentBranch = head branches
 
 -- | Depth-First Search
 -- The depthFirstSearch function is similiar to the breadthFirstSearch function,
@@ -108,16 +112,30 @@ breadthFirstSearch destination next branches exploredList
 depthFirstSearch::Node->(Branch -> [Branch])->[Branch]-> [Node]-> Maybe Branch
 depthFirstSearch destination next [] exploredList = Nothing -- if branch is empty then no solution
 depthFirstSearch destination next branches exploredList
-  | checkArrival destination (head (head branches)) = Just (head branches)
-  | notElem (head (head branches)) exploredList = depthFirstSearch destination next (next (head branches) ++ tail branches) (head (head branches) : exploredList)
+  | checkArrival destination currentNode = Just currentBranch -- if solution is found, return Just Branch
+  -- check if the current node of the search branch has been explored or not
+  -- explore the child nodes of the branch
+  -- and add the current node to the list of explored nodes
+  | notElem currentNode exploredList = depthFirstSearch destination next (next currentBranch ++ tail branches) (currentNode : exploredList)
   | otherwise = depthFirstSearch destination next (tail branches) exploredList
+      where currentNode = head (head branches)
+            currentBranch = head branches
 
 -- | Depth-Limited Search
 -- The depthLimitedSearch function is similiar to the depthFirstSearch function,
 -- except its search is limited to a pre-determined depth, d, in the search tree.
 depthLimitedSearch::Node->(Branch -> [Branch])->[Branch]-> Int-> Maybe Branch
-depthLimitedSearch destination next branches d = undefined
-
+depthLimitedSearch destination next [] d = Nothing -- if branch is empty then no solution (return Nothing)
+depthLimitedSearch destination next branches d
+  | d == 0 = Nothing
+  | checkArrival destination currentNode = Just currentBranch -- if solution is found, return Just Branch
+  -- if the length of the current branch is greater than or equal to d, skip that branch
+  -- and move on to the next branch
+  | branchLength >= d = depthLimitedSearch destination next (tail branches) d
+  | otherwise = depthLimitedSearch destination next (next currentBranch ++ tail branches) d
+      where currentNode = head (head branches)
+            currentBranch = head branches
+            branchLength = length currentBranch
 
 -- | Iterative-deepening search
 -- The iterDeepSearch function should initially search nodes using depth-first to depth d,
@@ -125,7 +143,11 @@ depthLimitedSearch destination next branches d = undefined
 -- This process should be continued until a solution is found.
 -- Each time a solution is not found the depth should be increased.
 iterDeepSearch:: Node-> (Branch -> [Branch])->Node -> Int-> Maybe Branch
-iterDeepSearch destination next initialNode d  =undefined
+iterDeepSearch destination next initialNode d
+  -- if solution is found, return a branch containing the Node
+  -- d here is maxDepth?? NOT DONE
+  | checkArrival destination initialNode = Just (initialNode : [])
+
 
 -- | Section 4: Informed search
 
