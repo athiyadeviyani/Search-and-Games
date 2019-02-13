@@ -155,7 +155,7 @@ iterDeepSearch destination next initialNode d
 -- This function should return the manhattan distance between the 'position' point and the 'destination'.
 
 manhattan::Node->Node->Int
-manhattan position destination = undefined
+manhattan position destination = abs(head position - head destination) + abs(tail position - tail destination)
 
 -- | Best-First Search
 -- The bestFirstSearch function uses the checkArrival function to check whether a node is a destination position,
