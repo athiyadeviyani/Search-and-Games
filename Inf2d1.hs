@@ -147,6 +147,8 @@ iterDeepSearch destination next initialNode d
   -- if solution is found, return a branch containing the Node
   -- d here is maxDepth?? NOT DONE
   | checkArrival destination initialNode = Just (initialNode : [])
+  | depthLimitedSearch destination next ((initialNode : []) : []) d [] == Nothing = iterDeepSearch destination next initialNode (d+1)
+  | otherwise = depthLimitedSearch destination next ((initialNode : []) : []) d []
 
 
 -- | Section 4: Informed search
@@ -155,28 +157,38 @@ iterDeepSearch destination next initialNode d
 -- This function should return the manhattan distance between the 'position' point and the 'destination'.
 
 manhattan::Node->Node->Int
-manhattan position destination = abs(head position - head destination) + abs(tail position - tail destination)
+manhattan position destination = abs(fst position - fst destination) + abs(snd position - snd destination)
 
 -- | Best-First Search
 -- The bestFirstSearch function uses the checkArrival function to check whether a node is a destination position,
 -- and the heuristic function (of type Node->Int) to determine the order in which nodes are searched.
 -- Nodes with a lower heuristic value should be searched before nodes with a higher heuristic value.
 
+-- TODO
 bestFirstSearch::Node->(Branch -> [Branch])->(Node->Int)->[Branch]-> [Node]-> Maybe Branch
-bestFirstSearch destination next heuristic branches exploredList=undefined
+bestFirstSearch destination next heuristic [] exploredList = Nothing -- if there is no solution return Nothing
+bestFirstSearch destination next heuristic branches exploredList
+  | checkArrival destination currentNode = Just currentBranch
+      where currentNode = head (head branches) -- CHANGE THIS!
+            currentBranch = head branches -- CHANGE THIS!
 
 
 -- | A* Search
 -- The aStarSearch function is similar to the bestFirstSearch function
 -- except it includes the cost of getting to the state when determining the value of the node.
 
+-- TODO
 aStarSearch::Node->(Branch -> [Branch])->(Node->Int)->(Branch ->Int)->[Branch]-> [Node]-> Maybe Branch
-aStarSearch destination next heuristic cost branches exploredList =undefined
+aStarSearch destination next heuristic cost [] exploredList = Nothing -- if there is no solution return Nothing
+aStarSearch destination next heuristic cost branches exploredList
+  | checkArrival destionation currentNode = Just currentBranch
+      where currentNode = head (head branches) -- CHANGE THIS
+            currentBranch = head branches -- CHANGE THIS!
 
 
 -- | The cost function calculates the current cost of a trace, where each movement from one state to another has a cost of 1.
 cost :: Branch  -> Int
-cost branch = undefined
+cost branch = length branch
 
 
 -- | Section 5: Games
@@ -194,11 +206,17 @@ cost branch = undefined
 
 eval :: Game -> Int
 -- simply checks if player 1 has won, and if so returns 1, else check for player 0 and if so returns -1, else returns 0 as draw
-eval game =undefined
+eval game
+  | terminal game && playerOneWins  = 1
+  | terminal game && playerZeroWins = -1
+  | terminal game                   = 0
+      where playerOneWins   = checkWin game maxPlayer
+            playerZeroWins  = checkWin game minPlayer
 
 -- | The minimax function should return the minimax value of the state (without alphabeta pruning).
 -- The eval function should be used to get the value of a terminal state.
 
+-- TODO
 minimax:: Game->Player->Int
 minimax game player =undefined
 
@@ -206,6 +224,7 @@ minimax game player =undefined
 -- | The alphabeta function should return the minimax value using alphabeta pruning.
 -- The eval function should be used to get the value of a terminal state.
 
+-- TODO
 alphabeta:: Game->Player->Int
 alphabeta game player =undefined
 
@@ -220,6 +239,7 @@ alphabeta game player =undefined
 -- It should return 1 if either of the move types is in the correct winning position.
 -- A value 0 represents a draw.
 
+-- TODO
 evalWild :: Game -> Int
 -- simply gives the player who reached(!) the terminal state +1  if either the x's or the o's are in the correct position.
 evalWild game =undefined
@@ -231,6 +251,7 @@ evalWild game =undefined
 -- You will have to modify this output depending on the player. If a move by the max player sent(!) the game into a terminal state you should give a +1 reward.
 -- If the min player sent the game into a terminal state you should give -1 reward.
 
+-- TODO
 alphabetaWild:: Game->Player->Int
 alphabetaWild game player =undefined
 
@@ -242,6 +263,7 @@ alphabetaWild game player =undefined
 -- | The minimaxWild function should return the minimax value of the state (without alphabeta pruning).
 -- The evalWild function should be used to get the value of a terminal state.
 
+-- TODO
 minimaxWild:: Game->Player->Int
 minimaxWild game player =undefined
 
