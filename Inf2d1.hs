@@ -146,9 +146,10 @@ iterDeepSearch:: Node-> (Branch -> [Branch])->Node -> Int-> Maybe Branch
 iterDeepSearch destination next initialNode d
   -- if solution is found, return a branch containing the Node
   -- d here is maxDepth?? NOT DONE
-  | checkArrival destination initialNode = Just (initialNode : [])
-  | depthLimitedSearch destination next ((initialNode : []) : []) d [] == Nothing = iterDeepSearch destination next initialNode (d+1)
-  | otherwise = depthLimitedSearch destination next ((initialNode : []) : []) d []
+  | checkArrival destination initialNode = Just (branchify initialNode)
+  | depthLimitedSearch destination next [branchify initialNode] d == Nothing = iterDeepSearch destination next initialNode (d+1)
+  | otherwise = depthLimitedSearch destination next [branchify initialNode] d
+      where branchify x = [x]
 
 
 -- | Section 4: Informed search
@@ -164,27 +165,37 @@ manhattan position destination = abs(fst position - fst destination) + abs(snd p
 -- and the heuristic function (of type Node->Int) to determine the order in which nodes are searched.
 -- Nodes with a lower heuristic value should be searched before nodes with a higher heuristic value.
 
--- TODO
-bestFirstSearch::Node->(Branch -> [Branch])->(Node->Int)->[Branch]-> [Node]-> Maybe Branch
-bestFirstSearch destination next heuristic [] exploredList = Nothing -- if there is no solution return Nothing
+-- TODO: manhattan != heuristic?
+bestFirstSearch:: Node-> (Branch-> [Branch])-> (Node->Int)-> [Branch]-> [Node]-> Maybe Branch
+bestFirstSearch destination next heuristic [] exploredList = Nothing
 bestFirstSearch destination next heuristic branches exploredList
   | checkArrival destination currentNode = Just currentBranch
-      where currentNode = head (head branches) -- CHANGE THIS!
-            currentBranch = head branches -- CHANGE THIS!
+  | notElem currentNode exploredList = bestFirstSearch destination next (manhattan destination) (sortBy (compareBranches manhattan destination) (tail branches ++ next currentBranch)) (currentNode : exploredList)
+  | otherwise = bestFirstSearch destination next (manhattan destination) (sortBy (compareBranches manhattan destination) ((tail branches) ++ next currentBranch)) exploredList
+      where currentNode = head (head branches)
+            currentBranch = head branches
 
+-- compare the branches based on their heuristic
+compareBranches::(Node-> Node-> Int) -> Node -> Branch -> Branch -> Ordering
+compareBranches heuristic destination branch1 branch2 = compare (heuristic destination (head branch1)) (heuristic destination (head branch2))
 
 -- | A* Search
 -- The aStarSearch function is similar to the bestFirstSearch function
 -- except it includes the cost of getting to the state when determining the value of the node.
 
--- TODO
+-- TODO manhattan != heuristic?
 aStarSearch::Node->(Branch -> [Branch])->(Node->Int)->(Branch ->Int)->[Branch]-> [Node]-> Maybe Branch
 aStarSearch destination next heuristic cost [] exploredList = Nothing -- if there is no solution return Nothing
 aStarSearch destination next heuristic cost branches exploredList
-  | checkArrival destionation currentNode = Just currentBranch
-      where currentNode = head (head branches) -- CHANGE THIS
-            currentBranch = head branches -- CHANGE THIS!
+  | checkArrival destination currentNode = Just currentBranch
+  | notElem currentNode exploredList = aStarSearch destination next (manhattan destination) cost (sortBy (compareBranches manhattan destination) (tail branches ++ next currentBranch)) (currentNode : exploredList)
+  | otherwise = aStarSearch destination next (manhattan destination) cost (sortBy (compareBranches manhattan destination) ((tail branches) ++ next currentBranch)) exploredList
+        where currentNode = head (head branches)
+              currentBranch = head branches
 
+-- compare the branches based on their heuristic + cost
+compareBranchesWithCost::(Node-> Node-> Int) -> Node -> Branch -> Branch -> Ordering
+compareBranchesWithCost heuristic destination branch1 branch2 = compare (cost branch1 + (heuristic destination (head branch1))) (cost branch2 + (heuristic destination (head branch2)))
 
 -- | The cost function calculates the current cost of a trace, where each movement from one state to another has a cost of 1.
 cost :: Branch  -> Int
@@ -210,23 +221,33 @@ eval game
   | terminal game && playerOneWins  = 1
   | terminal game && playerZeroWins = -1
   | terminal game                   = 0
-      where playerOneWins   = checkWin game maxPlayer
-            playerZeroWins  = checkWin game minPlayer
+      where playerOneWins   = checkWin game 1
+            playerZeroWins  = checkWin game 0
 
 -- | The minimax function should return the minimax value of the state (without alphabeta pruning).
 -- The eval function should be used to get the value of a terminal state.
 
--- TODO
+-- TODO: READ ON THIS
 minimax:: Game->Player->Int
-minimax game player =undefined
+minimax game player
+  | terminal game = eval game
+  | maxPlayer player = maximum [minimax g (switch player) | g <- moves game player]
+  | minPlayer player = minimum [minimax g (switch player) | g <- moves game player]
 
 
 -- | The alphabeta function should return the minimax value using alphabeta pruning.
 -- The eval function should be used to get the value of a terminal state.
 
 -- TODO
+-- ALPHABETA RANGE IS (-2, +2)
 alphabeta:: Game->Player->Int
-alphabeta game player =undefined
+alphabeta game player
+  | terminal game = eval game
+  | maxPlayer player = undefined
+  | minPlayer player = undefined
+
+-- PSEUDO CODE ON THE ASSIGNMENT
+
 
 
 -- | Section 5.2 Wild Tic Tac Toe
