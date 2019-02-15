@@ -166,6 +166,8 @@ manhattan position destination = abs(fst position - fst destination) + abs(snd p
 -- Nodes with a lower heuristic value should be searched before nodes with a higher heuristic value.
 
 -- TODO: manhattan != heuristic?
+-- FIX!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+-- bestFirstSearch (6,6) next (manhattan (6,6)) [[(1,2),(5,6)],[(2,3)]] []
 bestFirstSearch:: Node-> (Branch-> [Branch])-> (Node->Int)-> [Branch]-> [Node]-> Maybe Branch
 bestFirstSearch destination next heuristic [] exploredList = Nothing
 bestFirstSearch destination next heuristic branches exploredList
