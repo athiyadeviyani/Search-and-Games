@@ -1,5 +1,5 @@
 -- Inf2d Assignment 1 2018-2019
--- Matriculation number:
+-- Matriculation number: s1709906
 -- {-# OPTIONS -Wall #-}
 
 
