@@ -166,20 +166,24 @@ manhattan position destination = abs(fst position - fst destination) + abs(snd p
 -- Nodes with a lower heuristic value should be searched before nodes with a higher heuristic value.
 
 -- TODO: manhattan != heuristic?
--- FIX!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
--- bestFirstSearch (6,6) next (manhattan (6,6)) [[(1,2),(5,6)],[(2,3)]] []
 bestFirstSearch:: Node-> (Branch-> [Branch])-> (Node->Int)-> [Branch]-> [Node]-> Maybe Branch
 bestFirstSearch destination next heuristic [] exploredList = Nothing
 bestFirstSearch destination next heuristic branches exploredList
   | checkArrival destination currentNode = Just currentBranch
-  | notElem currentNode exploredList = bestFirstSearch destination next (manhattan destination) (sortBy (compareBranches manhattan destination) (tail branches ++ next currentBranch)) (currentNode : exploredList)
-  | otherwise = bestFirstSearch destination next (manhattan destination) (sortBy (compareBranches manhattan destination) ((tail branches) ++ next currentBranch)) exploredList
-      where currentNode = head (head branches)
-            currentBranch = head branches
+  | notElem currentNode exploredList = bestFirstSearch destination next heuristic (next currentBranch ++ tail sortedBranches) (currentNode : exploredList)
+  | otherwise = bestFirstSearch destination next heuristic (tail sortedBranches) exploredList
+      where sortedBranches = sortBranches branches heuristic
+            currentBranch = head sortedBranches
+            currentNode = head currentBranch
 
--- compare the branches based on their heuristic
-compareBranches::(Node-> Node-> Int) -> Node -> Branch -> Branch -> Ordering
-compareBranches heuristic destination branch1 branch2 = compare (heuristic destination (head branch1)) (heuristic destination (head branch2))
+
+-- compares the cost of each branch (as tuples)
+compareCost :: (Branch, Int) -> (Branch, Int) -> Ordering
+compareCost (branch1,cost1) (branch2,cost2) = compare cost1 cost2
+
+-- sorts the branches based on their costs
+sortBranches :: [Branch] -> (Node -> Int) -> [Branch]
+sortBranches branches heuristic = [b | (b,c) <- sortBy compareCost (zip branches (map (heuristic . head) branches))]
 
 -- | A* Search
 -- The aStarSearch function is similar to the bestFirstSearch function
@@ -190,14 +194,14 @@ aStarSearch::Node->(Branch -> [Branch])->(Node->Int)->(Branch ->Int)->[Branch]->
 aStarSearch destination next heuristic cost [] exploredList = Nothing -- if there is no solution return Nothing
 aStarSearch destination next heuristic cost branches exploredList
   | checkArrival destination currentNode = Just currentBranch
-  | notElem currentNode exploredList = aStarSearch destination next (manhattan destination) cost (sortBy (compareBranches manhattan destination) (tail branches ++ next currentBranch)) (currentNode : exploredList)
-  | otherwise = aStarSearch destination next (manhattan destination) cost (sortBy (compareBranches manhattan destination) ((tail branches) ++ next currentBranch)) exploredList
-        where currentNode = head (head branches)
-              currentBranch = head branches
+  | notElem currentNode exploredList = aStarSearch destination next heuristic cost (next currentBranch ++ tail sortedBranchesWithCost) (currentNode : exploredList)
+  | otherwise = aStarSearch destination next heuristic cost (tail sortedBranchesWithCost) exploredList
+        where sortedBranchesWithCost = sortBranchesWithCost branches heuristic cost
+              currentBranch = head sortedBranchesWithCost
+              currentNode = head currentBranch
 
--- compare the branches based on their heuristic + cost
-compareBranchesWithCost::(Node-> Node-> Int) -> Node -> Branch -> Branch -> Ordering
-compareBranchesWithCost heuristic destination branch1 branch2 = compare (cost branch1 + (heuristic destination (head branch1))) (cost branch2 + (heuristic destination (head branch2)))
+sortBranchesWithCost :: [Branch] -> (Node -> Int) -> (Branch -> Int) -> [Branch]
+sortBranchesWithCost branches heuristic cost = [b | (b,c) <- sortBy compareCost (zip branches (zipWith (+) (map (heuristic . head) branches) (map cost branches)))]
 
 -- | The cost function calculates the current cost of a trace, where each movement from one state to another has a cost of 1.
 cost :: Branch  -> Int
@@ -229,7 +233,7 @@ eval game
 -- | The minimax function should return the minimax value of the state (without alphabeta pruning).
 -- The eval function should be used to get the value of a terminal state.
 
--- TODO: READ ON THIS
+
 minimax:: Game->Player->Int
 minimax game player
   | terminal game = eval game
