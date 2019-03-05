@@ -17,32 +17,22 @@ gridWidth_search = 6
 
 
 {- NOTES:
-
 -- DO NOT CHANGE THE NAMES OR TYPE DEFINITIONS OF THE FUNCTIONS!
 You can write new auxillary functions, but don't change the names or type definitions
 of the functions which you are asked to implement.
-
 -- Comment your code.
-
 -- You should submit this file, and only this file, when you have finished the assignment.
-
 -- The deadline is the  13th March 2018 at 3pm.
-
 -- See the assignment sheet and document files for more information on the predefined game functions.
-
 -- See the README for description of a user interface to test your code.
-
 -- See www.haskell.org for haskell revision.
-
 -- Useful haskell topics, which you should revise:
 -- Recursion
 -- The Maybe monad
 -- Higher-order functions
 -- List processing functions: map, fold, filter, sortBy ...
-
 -- See Russell and Norvig Chapters 3 for search algorithms,
 -- and Chapter 5 for game search algorithms.
-
 -}
 
 -- Section 1: Uniform Search
@@ -249,11 +239,32 @@ minimax game player
 alphabeta:: Game->Player->Int
 alphabeta game player
   | terminal game = eval game
-  | maxPlayer player = undefined
-  | minPlayer player = undefined
+  | maxPlayer player = maxVal player game (-2) (2)
+  | minPlayer player = minVal player game (-2) (2)
 
 -- PSEUDO CODE ON THE ASSIGNMENT
 
+maxVal :: Role -> Game -> Int -> Int -> Int
+maxVal player game alpha beta
+  | terminal game = eval game
+  | otherwise = maxFor player (moves game player) alpha alpha beta
+
+maxFor :: Role -> [Game] -> Int -> Int -> Int -> Int
+maxFor player [] v alpha beta = v
+maxFor player (game:games) v alpha beta
+  | (maximum [v, (minVal player game alpha beta)] >= beta) = v
+  | otherwise = maxFor player games alpha (maximum [alpha, v]) beta
+
+minVal :: Role -> Game -> Int -> Int -> Int
+minVal player game alpha beta
+  | terminal game = eval game
+  | otherwise = minFor player (moves game player) beta alpha beta
+
+minFor :: Role -> [Game] -> Int -> Int -> Int
+minFor player [] v alpha beta = v
+minFor player (game:games) v alpha beta
+  | (minimum [v, (maxVal player game alpha beta)] <= alpha)) = v
+  | otherwise = minFor player games beta (minimum [beta, v]) beta
 
 
 -- | Section 5.2 Wild Tic Tac Toe
