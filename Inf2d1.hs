@@ -234,37 +234,46 @@ minimax game player
 -- | The alphabeta function should return the minimax value using alphabeta pruning.
 -- The eval function should be used to get the value of a terminal state.
 
--- TODO
+
 -- ALPHABETA RANGE IS (-2, +2)
+-- Following the pseudo code on the assignment
 alphabeta:: Game->Player->Int
 alphabeta game player
   | terminal game = eval game
-  | maxPlayer player = maxVal player game (-2) (2)
-  | minPlayer player = minVal player game (-2) (2)
+  | maxPlayer player = maxValue player game (-2) (2)
+  | minPlayer player = minValue player game (-2) (2)
 
--- PSEUDO CODE ON THE ASSIGNMENT
-
-maxVal :: Role -> Game -> Int -> Int -> Int
-maxVal player game alpha beta
+maxValue :: Player -> Game -> Int -> Int -> Int
+maxValue player game alpha beta
   | terminal game = eval game
+  -- for each alpha in actions(state) do
   | otherwise = maxFor player (moves game player) alpha alpha beta
 
-maxFor :: Role -> [Game] -> Int -> Int -> Int -> Int
+maxFor :: Player -> [Game] -> Int -> Int -> Int -> Int
 maxFor player [] v alpha beta = v
 maxFor player (game:games) v alpha beta
-  | (maximum [v, (minVal player game alpha beta)] >= beta) = v
-  | otherwise = maxFor player games alpha (maximum [alpha, v]) beta
+    -- v <- max(v, minvalue(result(s, a), alpha, beta))
+    -- if v >= beta then return v
+  | (v' >= beta) = v
+    --  alpha <- max(alpha, v)
+  | otherwise = maxFor player games v' (maximum [alpha, v']) beta
+      where v' = maximum [v, (minValue player game alpha beta)]
 
-minVal :: Role -> Game -> Int -> Int -> Int
-minVal player game alpha beta
+minValue :: Player -> Game -> Int -> Int -> Int
+minValue player game alpha beta
   | terminal game = eval game
+  -- for each alpha in actions(state) do
   | otherwise = minFor player (moves game player) beta alpha beta
 
-minFor :: Role -> [Game] -> Int -> Int -> Int
+minFor :: Player -> [Game] -> Int -> Int -> Int -> Int
 minFor player [] v alpha beta = v
 minFor player (game:games) v alpha beta
-  | (minimum [v, (maxVal player game alpha beta)] <= alpha)) = v
-  | otherwise = minFor player games beta (minimum [beta, v]) beta
+  -- v <- min(v, maxValue(result(s, a), alpha, beta))
+  -- if v <= alpha then return v
+  | (v' <= alpha) = v
+  --  beta <- min(beta, v)
+  | otherwise = minFor player games v' (minimum [beta, v']) beta
+      where v' = minimum [v, (maxValue player game alpha beta)]
 
 
 -- | Section 5.2 Wild Tic Tac Toe
@@ -277,10 +286,12 @@ minFor player (game:games) v alpha beta
 -- It should return 1 if either of the move types is in the correct winning position.
 -- A value 0 represents a draw.
 
--- TODO
 evalWild :: Game -> Int
 -- simply gives the player who reached(!) the terminal state +1  if either the x's or the o's are in the correct position.
-evalWild game =undefined
+evalWild game
+  | checkWin game 1 = 1
+  | checkWin game 0 = 1
+  | otherwise = 0
 
 
 
