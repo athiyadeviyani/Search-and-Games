@@ -49,7 +49,6 @@ badNodesList::[Node]
 badNodesList = []
 
 -- The maximum depth this search can reach
--- TODO: Fill in the maximum depth and justify your choice
 maxDepth::Int
 maxDepth= (gridWidth_search * gridLength_search) - 1
 -- Why did you choose this number?
@@ -83,11 +82,9 @@ checkArrival destination curNode
 -- The breadthFirstSearch function should use the next function to expand a node,
 -- and the checkArrival function to check whether a node is a destination position.
 -- The function should search nodes using a breadth first search order.
-
 breadthFirstSearch::Node->(Branch -> [Branch])->[Branch]->[Node]->Maybe Branch
 breadthFirstSearch destination next [] exploredList = Nothing -- if branch is empty then there is no solution
 breadthFirstSearch destination next branches exploredList
-  | elem destination badNodesList = Nothing
   | checkArrival destination currentNode = Just currentBranch -- if solution is found, return Just Branch
     -- check if the current node of the search branch has been explored or not
     -- explore the other branches
@@ -103,7 +100,6 @@ breadthFirstSearch destination next branches exploredList
 depthFirstSearch::Node->(Branch -> [Branch])->[Branch]-> [Node]-> Maybe Branch
 depthFirstSearch destination next [] exploredList = Nothing -- if branch is empty then no solution
 depthFirstSearch destination next branches exploredList
-  | elem destination badNodesList = Nothing
   | checkArrival destination currentNode = Just currentBranch -- if solution is found, return Just Branch
   -- check if the current node of the search branch has been explored or not
   -- explore the child nodes of the branch
@@ -116,9 +112,9 @@ depthFirstSearch destination next branches exploredList
 -- | Depth-Limited Search
 -- The depthLimitedSearch function is similiar to the depthFirstSearch function,
 -- except its search is limited to a pre-determined depth, d, in the search tree.
+depthLimitedSearch::Node->(Branch -> [Branch])->[Branch]-> Int -> Maybe Branch
 depthLimitedSearch destination next [] d = Nothing -- if branch is empty then no solution (return Nothing)
 depthLimitedSearch destination next branches d
-  | elem destination badNodesList = Nothing
   | checkArrival destination currentNode = Just currentBranch -- if solution is found, return Just Branch
   -- if the length of the current branch is greater than or equal to d, skip that branch
   -- and move on to the next branch
@@ -135,18 +131,23 @@ depthLimitedSearch destination next branches d
 -- Each time a solution is not found the depth should be increased.
 iterDeepSearch:: Node-> (Branch -> [Branch])->Node -> Int-> Maybe Branch
 iterDeepSearch destination next initialNode d
-  | elem destination badNodesList = Nothing
-  -- if solution is found, return a branch containing the Node
-  -- d here is maxDepth?? NOT DONE
-  | checkArrival destination initialNode = Just (branchify initialNode)
-  | depthLimitedSearch destination next [branchify initialNode] d == Nothing = iterDeepSearch destination next initialNode (d+1)
-  | otherwise = depthLimitedSearch destination next [branchify initialNode] d
-      where branchify x = [x]
+  | elem initialNode badNodesList = Nothing
+  | otherwise = iterDeepSearch' destination next [[initialNode]] d
 
+-- Helper function to perform iterative deepening search according to the specified conditions
+iterDeepSearch' :: Node -> (Branch -> [Branch]) -> [Branch] -> Int -> Maybe Branch
+iterDeepSearch' destination next [] d = Nothing
+iterDeepSearch' destination next branches d
+ | elem destination badNodesList = Nothing
+ | checkArrival destination currentNode = Just currentBranch
+ | (notElem currentNode badNodesList) && (length currentBranch <= d) = iterDeepSearch' destination next (next currentBranch ++ tail branches) d
+ | (notElem currentNode badNodesList) && (length currentBranch > d) && (d < maxDepth) = iterDeepSearch' destination next branches (d+1)
+ | otherwise = iterDeepSearch' destination next branches d
+    where currentBranch = head branches
+          currentNode = head currentBranch
 
 -- Manhattan distance heuristic
 -- This function should return the manhattan distance between the 'position' point and the 'destination'.
-
 manhattan::Node->Node->Int
 manhattan position destination = abs(fst position - fst destination) + abs(snd position - snd destination)
 
@@ -154,7 +155,6 @@ manhattan position destination = abs(fst position - fst destination) + abs(snd p
 -- The bestFirstSearch function uses the checkArrival function to check whether a node is a destination position,
 -- and the heuristic function (of type Node->Int) to determine the order in which nodes are searched.
 -- Nodes with a lower heuristic value should be searched before nodes with a higher heuristic value.
-
 bestFirstSearch:: Node-> (Branch-> [Branch])-> (Node->Int)-> [Branch]-> [Node]-> Maybe Branch
 bestFirstSearch destination next heuristic [] exploredList = Nothing
 bestFirstSearch destination next heuristic branches exploredList
@@ -167,18 +167,17 @@ bestFirstSearch destination next heuristic branches exploredList
             currentNode = head currentBranch
 
 
--- compares the cost of each branch (as tuples)
+-- compares the heuristc value of each branch (as tuples)
 compareCost :: (Branch, Int) -> (Branch, Int) -> Ordering
 compareCost (branch1,cost1) (branch2,cost2) = compare cost1 cost2
 
--- sorts the branches based on their costs
+-- sorts the branches based on their heuristic values
 sortBranches :: [Branch] -> (Node -> Int) -> [Branch]
 sortBranches branches heuristic = [b | (b,c) <- sortBy compareCost (zip branches (map (heuristic . head) branches))]
 
 -- | A* Search
 -- The aStarSearch function is similar to the bestFirstSearch function
 -- except it includes the cost of getting to the state when determining the value of the node.
-
 aStarSearch::Node->(Branch -> [Branch])->(Node->Int)->(Branch ->Int)->[Branch]-> [Node]-> Maybe Branch
 aStarSearch destination next heuristic cost [] exploredList = Nothing -- if there is no solution return Nothing
 aStarSearch destination next heuristic cost branches exploredList
@@ -190,6 +189,7 @@ aStarSearch destination next heuristic cost branches exploredList
               currentBranch = head sortedBranchesWithCost
               currentNode = head currentBranch
 
+-- sorts the branches based on the added total of their heuristic value as well as their cost
 sortBranchesWithCost :: [Branch] -> (Node -> Int) -> (Branch -> Int) -> [Branch]
 sortBranchesWithCost branches heuristic cost = [b | (b,c) <- sortBy compareCost (zip branches (zipWith (+) (map (heuristic . head) branches) (map cost branches)))]
 
@@ -222,12 +222,10 @@ eval game
 
 -- | The minimax function should return the minimax value of the state (without alphabeta pruning).
 -- The eval function should be used to get the value of a terminal state.
-
-
 minimax:: Game->Player->Int
 minimax game player
   | terminal game = eval game
-  | maxPlayer player = maximum [minimax g (switch player) | g <- moves game player]
+  | maxPlayer player = maximum [minimax g (switch player) | g <- moves game player] -- switch allows you to change between players
   | minPlayer player = minimum [minimax g (switch player) | g <- moves game player]
 
 
@@ -236,23 +234,26 @@ minimax game player
 
 
 -- ALPHABETA RANGE IS (-2, +2)
--- Following the pseudo code on the assignment
+-- Following the pseudo code on the assignment handout
 alphabeta :: Game -> Player -> Int
 alphabeta game player
-  | terminal game = eval game
-  | maxPlayer player = maxValue game (-2) 2
+  -- v <- maxValue(state, -inf, +inf)
+  | maxPlayer player = maxValue game (-2) 2 -- -inf and +inf are set to -2 and +2 respectively
   | minPlayer player = minValue game (-2) 2
 
 maxValue :: Game -> Int -> Int -> Int
 maxValue game alpha beta
+  -- if ternminal-test(state) then return utility(state)
   | terminal game = eval game
+  -- v <- -inf
   | otherwise = maxFor (moves game 1) alpha beta (-2)
 
 maxFor :: [Game] -> Int -> Int -> Int -> Int
 maxFor [] alpha beta v = v
 maxFor (game:games) alpha beta v
   | v' < beta = maxFor games (max alpha v') beta v'
-  | otherwise = v'
+  | otherwise = v' -- if v' >= beta then return v
+      -- v' <- max(v, minValue(result(s, a), alpha, beta))
       where v' = (max v (minValue game alpha beta))
 
 minValue :: Game -> Int -> Int -> Int
@@ -287,11 +288,38 @@ evalWild game
 -- The evalWild function should be used to get the value of a terminal state. Note that this will now always return 1 for any player who reached the terminal state.
 -- You will have to modify this output depending on the player. If a move by the max player sent(!) the game into a terminal state you should give a +1 reward.
 -- If the min player sent the game into a terminal state you should give -1 reward.
+-- CHANGES:
+--    change eval to evalWild
+--    change moves to movesWild
+--    make terminal game in maxValueWild return (evalWild game * -1)
+alphabetaWild :: Game -> Player -> Int
+alphabetaWild game player
+  | maxPlayer player = maxValueWild game (-2) 2
+  | minPlayer player = minValueWild game (-2) 2
 
--- TODO
-alphabetaWild:: Game->Player->Int
-alphabetaWild game player =undefined
+maxValueWild :: Game -> Int -> Int -> Int
+maxValueWild game alpha beta
+  | terminal game = (evalWild game) * (-1) -- make terminal game in maxValueWild return (evalWild game * -1)
+  | otherwise = maxForWild (movesWild game 1) alpha beta (-2) -- change moves to movesWild
 
+maxForWild :: [Game] -> Int -> Int -> Int -> Int
+maxForWild [] alpha beta v = v
+maxForWild (game:games) alpha beta v
+  | v' < beta = maxForWild games (max alpha v') beta v'
+  | otherwise = v'
+      where v' = (max v (minValueWild game alpha beta))
+
+minValueWild :: Game -> Int -> Int -> Int
+minValueWild game alpha beta
+  | terminal game = evalWild game -- change eval to evalWild
+  | otherwise = minForWild (movesWild game 0) alpha beta 2 -- change moves to movesWild
+
+minForWild :: [Game] -> Int -> Int -> Int -> Int
+minForWild [] alpha beta v = v
+minForWild (game:games) alpha beta v
+  | v' > alpha = minForWild games alpha (min beta v') v'
+  | otherwise = v'
+      where v' = (min v (maxValueWild game alpha beta))
 
 
 -- | End of official assignment. However, if you want to also implement the minimax function to work for Wild Tic Tac Toe you can have a go at it here. This is NOT graded.
