@@ -85,7 +85,10 @@ checkArrival destination curNode
 breadthFirstSearch::Node->(Branch -> [Branch])->[Branch]->[Node]->Maybe Branch
 breadthFirstSearch destination next [] exploredList = Nothing -- if branch is empty then there is no solution
 breadthFirstSearch destination next branches exploredList
-  | checkArrival destination currentNode = Just currentBranch -- if solution is found, return Just Branch
+  -- checks whether the destination node is in the badNodesList and return nothing if it is
+  | elem destination badNodesList = Nothing
+  -- if solution is found, return Just Branch
+  | checkArrival destination currentNode = Just currentBranch
     -- check if the current node of the search branch has been explored or not
     -- explore the other branches
     -- and add the current node to the list of explored nodes
@@ -100,7 +103,10 @@ breadthFirstSearch destination next branches exploredList
 depthFirstSearch::Node->(Branch -> [Branch])->[Branch]-> [Node]-> Maybe Branch
 depthFirstSearch destination next [] exploredList = Nothing -- if branch is empty then no solution
 depthFirstSearch destination next branches exploredList
-  | checkArrival destination currentNode = Just currentBranch -- if solution is found, return Just Branch
+  -- checks whether the destination node is in the badNodesList and return nothing if it is
+  | elem destination badNodesList = Nothing
+  -- if solution is found, return Just Branch
+  | checkArrival destination currentNode = Just currentBranch
   -- check if the current node of the search branch has been explored or not
   -- explore the child nodes of the branch
   -- and add the current node to the list of explored nodes
@@ -115,7 +121,10 @@ depthFirstSearch destination next branches exploredList
 depthLimitedSearch::Node->(Branch -> [Branch])->[Branch]-> Int -> Maybe Branch
 depthLimitedSearch destination next [] d = Nothing -- if branch is empty then no solution (return Nothing)
 depthLimitedSearch destination next branches d
-  | checkArrival destination currentNode = Just currentBranch -- if solution is found, return Just Branch
+  -- checks whether the destination node is in the badNodesList and return nothing if it is
+  | elem destination badNodesList = Nothing
+  -- if solution is found, return Just Branch
+  | checkArrival destination currentNode = Just currentBranch
   -- if the length of the current branch is greater than or equal to d, skip that branch
   -- and move on to the next branch
   | (branchLength <= d) && (notElem currentNode badNodesList) = depthLimitedSearch destination next (next currentBranch ++ tail branches) d
@@ -131,7 +140,9 @@ depthLimitedSearch destination next branches d
 -- Each time a solution is not found the depth should be increased.
 iterDeepSearch:: Node-> (Branch -> [Branch])->Node -> Int-> Maybe Branch
 iterDeepSearch destination next initialNode d
+  -- checks whether the initialNode is in the badNodesList and return nothing if it is
   | elem initialNode badNodesList = Nothing
+  -- uses the helper function iterDeepSearch' to perform the search based on certain conditions
   | otherwise = iterDeepSearch' destination next [[initialNode]] d
 
 -- Manhattan distance heuristic
@@ -146,8 +157,11 @@ manhattan position destination = abs(fst position - fst destination) + abs(snd p
 bestFirstSearch:: Node-> (Branch-> [Branch])-> (Node->Int)-> [Branch]-> [Node]-> Maybe Branch
 bestFirstSearch destination next heuristic [] exploredList = Nothing
 bestFirstSearch destination next heuristic branches exploredList
+  -- checks whether the destination node is in the badNodesList and return nothing if it is
   | elem destination badNodesList = Nothing
+  -- if solution is found, return Just Branch
   | checkArrival destination currentNode = Just currentBranch
+  -- performs search based on the sorted branches obtained from the helper function compareCost and sortBranches
   | notElem currentNode exploredList = bestFirstSearch destination next heuristic (next currentBranch ++ tail sortedBranches) (currentNode : exploredList)
   | otherwise = bestFirstSearch destination next heuristic (tail sortedBranches) exploredList
       where sortedBranches = sortBranches branches heuristic
@@ -160,8 +174,11 @@ bestFirstSearch destination next heuristic branches exploredList
 aStarSearch::Node->(Branch -> [Branch])->(Node->Int)->(Branch ->Int)->[Branch]-> [Node]-> Maybe Branch
 aStarSearch destination next heuristic cost [] exploredList = Nothing -- if there is no solution return Nothing
 aStarSearch destination next heuristic cost branches exploredList
+  -- checks whether the destination node is in the badNodesList and return nothing if it is
   | elem destination badNodesList = Nothing
+  -- if solution is found, return Just Branch
   | checkArrival destination currentNode = Just currentBranch
+  -- performs search based on the sorted branches (based on heuristic value + cost) obtained from the helper function sortBranchesWithCost
   | notElem currentNode exploredList = aStarSearch destination next heuristic cost (next currentBranch ++ tail sortedBranchesWithCost) (currentNode : exploredList)
   | otherwise = aStarSearch destination next heuristic cost (tail sortedBranchesWithCost) exploredList
         where sortedBranchesWithCost = sortBranchesWithCost branches heuristic cost
@@ -200,8 +217,10 @@ eval game
 minimax:: Game->Player->Int
 minimax game player
   | terminal game = eval game
+  -- should recursively switch players until the game ends
+  -- the switch function allows you to change between players
   | minPlayer player = minimum [minimax move (switch player) | move <- moves game player]
-  | maxPlayer player = maximum [minimax move (switch player) | move <- moves game player] -- switch allows you to change between players
+  | maxPlayer player = maximum [minimax move (switch player) | move <- moves game player]
 
 
 
