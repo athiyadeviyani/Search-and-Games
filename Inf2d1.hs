@@ -301,9 +301,13 @@ move (x,y) = [(x-1,y), (x+1,y), (x,y-1), (x,y+1)]
 iterDeepSearch' :: Node -> (Branch -> [Branch]) -> [Branch] -> Int -> Maybe Branch
 iterDeepSearch' destination next [] d = Nothing
 iterDeepSearch' destination next branches d
+  -- if the destination node is in the badNodesList then return nothing
  | elem destination badNodesList = Nothing
+  -- if the solution is found, return currentBranch
  | checkArrival destination currentNode = Just currentBranch
+ -- checks if the length of the currentBranch is less than the specified d and perform the search if it passes
  | (notElem currentNode badNodesList) && (length currentBranch <= d) = iterDeepSearch' destination next (next currentBranch ++ tail branches) d
+ -- if the length of the currentBranch is more than the specified d but d is still less than maxDepth, recurse and increment d
  | (notElem currentNode badNodesList) && (length currentBranch > d) && (d < maxDepth) = iterDeepSearch' destination next branches (d+1)
  | otherwise = iterDeepSearch' destination next branches d
     where currentBranch = head branches
