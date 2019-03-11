@@ -134,18 +134,6 @@ iterDeepSearch destination next initialNode d
   | elem initialNode badNodesList = Nothing
   | otherwise = iterDeepSearch' destination next [[initialNode]] d
 
--- Helper function to perform iterative deepening search according to the specified conditions
-iterDeepSearch' :: Node -> (Branch -> [Branch]) -> [Branch] -> Int -> Maybe Branch
-iterDeepSearch' destination next [] d = Nothing
-iterDeepSearch' destination next branches d
- | elem destination badNodesList = Nothing
- | checkArrival destination currentNode = Just currentBranch
- | (notElem currentNode badNodesList) && (length currentBranch <= d) = iterDeepSearch' destination next (next currentBranch ++ tail branches) d
- | (notElem currentNode badNodesList) && (length currentBranch > d) && (d < maxDepth) = iterDeepSearch' destination next branches (d+1)
- | otherwise = iterDeepSearch' destination next branches d
-    where currentBranch = head branches
-          currentNode = head currentBranch
-
 -- Manhattan distance heuristic
 -- This function should return the manhattan distance between the 'position' point and the 'destination'.
 manhattan::Node->Node->Int
@@ -166,15 +154,6 @@ bestFirstSearch destination next heuristic branches exploredList
             currentBranch = head sortedBranches
             currentNode = head currentBranch
 
-
--- compares the heuristc value of each branch (as tuples)
-compareCost :: (Branch, Int) -> (Branch, Int) -> Ordering
-compareCost (branch1,cost1) (branch2,cost2) = compare cost1 cost2
-
--- sorts the branches based on their heuristic values
-sortBranches :: [Branch] -> (Node -> Int) -> [Branch]
-sortBranches branches heuristic = [b | (b,c) <- sortBy compareCost (zip branches (map (heuristic . head) branches))]
-
 -- | A* Search
 -- The aStarSearch function is similar to the bestFirstSearch function
 -- except it includes the cost of getting to the state when determining the value of the node.
@@ -188,10 +167,6 @@ aStarSearch destination next heuristic cost branches exploredList
         where sortedBranchesWithCost = sortBranchesWithCost branches heuristic cost
               currentBranch = head sortedBranchesWithCost
               currentNode = head currentBranch
-
--- sorts the branches based on the added total of their heuristic value as well as their cost
-sortBranchesWithCost :: [Branch] -> (Node -> Int) -> (Branch -> Int) -> [Branch]
-sortBranchesWithCost branches heuristic cost = [b | (b,c) <- sortBy compareCost (zip branches (zipWith (+) (map (heuristic . head) branches) (map cost branches)))]
 
 -- | The cost function calculates the current cost of a trace, where each movement from one state to another has a cost of 1.
 cost :: Branch  -> Int
@@ -225,8 +200,9 @@ eval game
 minimax:: Game->Player->Int
 minimax game player
   | terminal game = eval game
-  | maxPlayer player = maximum [minimax g (switch player) | g <- moves game player] -- switch allows you to change between players
-  | minPlayer player = minimum [minimax g (switch player) | g <- moves game player]
+  | minPlayer player = minimum [minimax move (switch player) | move <- moves game player]
+  | maxPlayer player = maximum [minimax move (switch player) | move <- moves game player] -- switch allows you to change between players
+
 
 
 -- | The alphabeta function should return the minimax value using alphabeta pruning.
@@ -240,33 +216,6 @@ alphabeta game player
   -- v <- maxValue(state, -inf, +inf)
   | maxPlayer player = maxValue game (-2) 2 -- -inf and +inf are set to -2 and +2 respectively
   | minPlayer player = minValue game (-2) 2
-
-maxValue :: Game -> Int -> Int -> Int
-maxValue game alpha beta
-  -- if ternminal-test(state) then return utility(state)
-  | terminal game = eval game
-  -- v <- -inf
-  | otherwise = maxFor (moves game 1) alpha beta (-2)
-
-maxFor :: [Game] -> Int -> Int -> Int -> Int
-maxFor [] alpha beta v = v
-maxFor (game:games) alpha beta v
-  | v' < beta = maxFor games (max alpha v') beta v'
-  | otherwise = v' -- if v' >= beta then return v
-      -- v' <- max(v, minValue(result(s, a), alpha, beta))
-      where v' = (max v (minValue game alpha beta))
-
-minValue :: Game -> Int -> Int -> Int
-minValue game alpha beta
-  | terminal game = eval game
-  | otherwise = minFor (moves game 0) alpha beta 2
-
-minFor :: [Game] -> Int -> Int -> Int -> Int
-minFor [] alpha beta v = v
-minFor (game:games) alpha beta v
-  | v' > alpha = minFor games alpha (min beta v') v'
-  | otherwise = v'
-      where v' = (min v (maxValue game alpha beta))
 
 -- | Section 5.2 Wild Tic Tac Toe
 
@@ -283,11 +232,11 @@ evalWild game
   | otherwise = 0
 
 
-
 -- | The alphabetaWild function should return the minimax value using alphabeta pruning.
 -- The evalWild function should be used to get the value of a terminal state. Note that this will now always return 1 for any player who reached the terminal state.
 -- You will have to modify this output depending on the player. If a move by the max player sent(!) the game into a terminal state you should give a +1 reward.
 -- If the min player sent the game into a terminal state you should give -1 reward.
+
 -- CHANGES:
 --    change eval to evalWild
 --    change moves to movesWild
@@ -296,6 +245,110 @@ alphabetaWild :: Game -> Player -> Int
 alphabetaWild game player
   | maxPlayer player = maxValueWild game (-2) 2
   | minPlayer player = minValueWild game (-2) 2
+
+
+
+
+-- | End of official assignment. However, if you want to also implement the minimax function to work for Wild Tic Tac Toe you can have a go at it here. This is NOT graded.
+
+
+-- | The minimaxWild function should return the minimax value of the state (without alphabeta pruning).
+-- The evalWild function should be used to get the value of a terminal state.
+
+-- optional
+minimaxWild:: Game->Player->Int
+minimaxWild game player =undefined
+
+
+
+
+
+			-- | Auxiliary Functions
+-- Include any auxiliary functions you need for your algorithms here.
+-- For each function, state its purpose and comment adequately.
+-- Functions which increase the complexity of the algorithm will not get additional scores
+
+
+-- next
+
+-- Outputs the possible locations after movement of the nodes
+move :: Node -> Branch
+move (x,y) = [(x-1,y), (x+1,y), (x,y-1), (x,y+1)]
+
+
+-- iterDeepSearch
+
+-- Helper function to perform iterative deepening search according to the specified conditions
+iterDeepSearch' :: Node -> (Branch -> [Branch]) -> [Branch] -> Int -> Maybe Branch
+iterDeepSearch' destination next [] d = Nothing
+iterDeepSearch' destination next branches d
+ | elem destination badNodesList = Nothing
+ | checkArrival destination currentNode = Just currentBranch
+ | (notElem currentNode badNodesList) && (length currentBranch <= d) = iterDeepSearch' destination next (next currentBranch ++ tail branches) d
+ | (notElem currentNode badNodesList) && (length currentBranch > d) && (d < maxDepth) = iterDeepSearch' destination next branches (d+1)
+ | otherwise = iterDeepSearch' destination next branches d
+    where currentBranch = head branches
+          currentNode = head currentBranch
+
+
+-- bestFirstSearch
+
+-- compares the heuristc value of each branch (as tuples)
+compareCost :: (Branch, Int) -> (Branch, Int) -> Ordering
+compareCost (branch1,cost1) (branch2,cost2) = compare cost1 cost2
+
+-- sorts the branches based on their heuristic values
+sortBranches :: [Branch] -> (Node -> Int) -> [Branch]
+sortBranches branches heuristic = [b | (b,c) <- sortBy compareCost (zip branches (map (heuristic . head) branches))]
+
+
+-- aStarSearch
+
+-- sorts the branches based on the added total of their heuristic value as well as their cost
+sortBranchesWithCost :: [Branch] -> (Node -> Int) -> (Branch -> Int) -> [Branch]
+sortBranchesWithCost branches heuristic cost = [b | (b,c) <- sortBy compareCost (zip branches (zipWith (+) (map (heuristic . head) branches) (map cost branches)))]
+
+
+-- alphabeta
+-- Functions are coded based on the pseudocode on the assignment handout (page 7 of A1.pdf)
+
+maxValue :: Game -> Int -> Int -> Int
+maxValue game alpha beta
+  -- if ternminal-test(state) then return utility(state)
+  | terminal game = eval game
+  -- v <- -inf
+  | otherwise = maxFor (moves game 1) alpha beta (-2)
+
+maxFor :: [Game] -> Int -> Int -> Int -> Int
+maxFor [] alpha beta v = v
+maxFor (game:games) alpha beta v
+  -- alpha <- max(alpha, v')
+  | v' < beta = maxFor games (max alpha v') beta v'
+  -- if v' >= beta then return v'
+  | otherwise = v'
+      -- v' <- max(v, minValue(result(s, a), alpha, beta))
+      where v' = (max v (minValue game alpha beta))
+
+minValue :: Game -> Int -> Int -> Int
+minValue game alpha beta
+  -- if terminal-test(state) then return utility(state)
+  | terminal game = eval game
+  -- v <- +inf
+  | otherwise = minFor (moves game 0) alpha beta 2
+
+minFor :: [Game] -> Int -> Int -> Int -> Int
+minFor [] alpha beta v = v
+minFor (game:games) alpha beta v
+  -- beta <- min(beta, v')
+  | v' > alpha = minFor games alpha (min beta v') v'
+  -- if v' <= alpha then return v'
+  | otherwise = v'
+      -- v' = min(v, max-value(result(s, a), alpha, beta))
+      where v' = (min v (maxValue game alpha beta))
+
+
+-- alphabetaWild
+-- Also following the pseudocode with minor changes indicated below
 
 maxValueWild :: Game -> Int -> Int -> Int
 maxValueWild game alpha beta
@@ -320,24 +373,3 @@ minForWild (game:games) alpha beta v
   | v' > alpha = minForWild games alpha (min beta v') v'
   | otherwise = v'
       where v' = (min v (maxValueWild game alpha beta))
-
-
--- | End of official assignment. However, if you want to also implement the minimax function to work for Wild Tic Tac Toe you can have a go at it here. This is NOT graded.
-
-
--- | The minimaxWild function should return the minimax value of the state (without alphabeta pruning).
--- The evalWild function should be used to get the value of a terminal state.
-
--- TODO
-minimaxWild:: Game->Player->Int
-minimaxWild game player =undefined
-
-
-
-			-- | Auxiliary Functions
--- Include any auxiliary functions you need for your algorithms here.
--- For each function, state its purpose and comment adequately.
--- Functions which increase the complexity of the algorithm will not get additional scores
-
-move :: Node -> Branch
-move (x,y) = [(x-1,y), (x+1,y), (x,y-1), (x,y+1)]
